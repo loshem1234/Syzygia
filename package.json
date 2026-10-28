@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "description": "Two Greek-scholar agents, yoked: a debate engine for faithful and eloquent translation of Ancient Greek.",
-  "workspaces": ["server", "web"],
+  "workspaces": [
+    "server",
+    "web"
+  ],
   "scripts": {
     "build": "npm run build -w web",
     "start": "npm run start -w server",
@@ -11,5 +14,7 @@
     "migrate": "npm run migrate -w server",
     "test": "npm test -w server"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": "22.x"
+  }
 }

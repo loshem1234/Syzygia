@@ -1,0 +1,15 @@
+{
+  "name": "syzygia",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Two Greek-scholar agents, yoked: a debate engine for faithful and eloquent translation of Ancient Greek.",
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "build": "npm run build -w web",
+    "start": "npm run start -w server",
+    "dev": "npm run dev -w server & npm run dev -w web",
+    "migrate": "npm run migrate -w server",
+    "test": "npm test -w server"
+  },
+  "engines": { "node": ">=20" }
+}

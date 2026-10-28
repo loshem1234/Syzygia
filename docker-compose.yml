@@ -1,0 +1,15 @@
+# Local development: Postgres and the Morpheus parser.
+# Then: cp .env.example .env, npm install, npm run dev
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: syzygia
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+  morpheus:
+    image: perseidsproject/morpheus-api:v1.0.15
+    ports: ["1315:1315"]
+volumes:
+  pgdata:

@@ -53,6 +53,7 @@ export default function AgentsPage() {
           <button className="btn" style={{ marginTop: 10 }} onClick={() => setSel('new')}>New agent</button>
         </nav>
 
+        <div className="stack">
         <form className="stack" onSubmit={save}>
           <div className="grid-2">
             <Field label="Name"><input type="text" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Philologos" /></Field>
@@ -75,6 +76,7 @@ export default function AgentsPage() {
             {sel !== 'new' && <button type="button" className="btn quiet danger" disabled={busy} onClick={remove}>Remove agent</button>}
           </div>
           {showCharter && <pre className="sheet" style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--serif)', fontSize: 'var(--t-sm)' }}>{meta.data?.charter}</pre>}
+        </form>
 
           {current && (
             <>
@@ -92,7 +94,7 @@ export default function AgentsPage() {
               </section>
             </>
           )}
-        </form>
+        </div>
       </div>
 
       <Pricing agents={agents.data || []} />

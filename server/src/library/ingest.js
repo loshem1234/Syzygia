@@ -32,12 +32,20 @@ export function splitWork(raw, mode) {
         return chunk(o.ref, o.text, { heading: o.heading || '', lemmas: o.lemmas || (o.headword ? [o.headword] : []), topics: o.topics || [] });
       });
     case 'lsj-xml': {
+      // Two layouts: Perseus (<entryFree key="…">, Unicode Greek) and the
+      // Logeion edition (<div2 key="betacode"> with a Unicode <head>).
       const out = [];
-      const re = /<entryFree\b[^>]*\bkey="([^"]+)"[^>]*>([\s\S]*?)<\/entryFree>/g;
+      const greek = /[Ͱ-Ͽἀ-῿]/;
+      const re = /<(entryFree|div2)\b([^>]*)>([\s\S]*?)<\/\1>/g;
       let m;
       while ((m = re.exec(text))) {
-        const head = m[1].replace(/\d+$/, '');
-        out.push(chunk(head, strip(m[2]), { heading: head, lemmas: [head] }));
+        const body = m[3];
+        const headTag = body.match(/<head\b[^>]*>([\s\S]*?)<\/head>/);
+        const key = (m[2].match(/\bkey="([^"]+)"/) || [])[1] || '';
+        let head = headTag ? strip(headTag[1]) : key;
+        head = head.replace(/\d+$/, '').replace(/[\s,]+$/, '').trim();
+        if (!head || !greek.test(head)) continue; // front matter, abbreviations
+        out.push(chunk(head, strip(body).replace(/\s*\n\s*/g, ' '), { heading: head, lemmas: [head] }));
       }
       return out;
     }

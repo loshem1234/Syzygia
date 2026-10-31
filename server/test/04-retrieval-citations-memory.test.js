@@ -30,7 +30,7 @@ const BUCK = `41. Doric ā for Attic η. In Doric the original long ā is retain
 42. Ionic η for ā. In Ionic η appears even after ε, ι, ρ.`;
 
 const RAW1 = '1 ὁ νοῦς βασιλεύει\n';
-const RAW2 = '1 τοῦ δὲ νοῦ βασιλεύοντος γάρ ἀρετά\n';
+const RAW2 = '1 τοῦ δὲ νοῦ βασιλεύοντος γάρ δὴ ἀρετά\n';
 
 const MORPH = {
   'ὁ': [{ lemma: 'ὁ', pos: 'article', case: 'nom', features: [], dialects: [] }],
@@ -41,6 +41,7 @@ const MORPH = {
   'νοῦ': [{ lemma: 'νοῦς', pos: 'noun', case: 'gen', number: 'sg', features: [], dialects: [] }],
   'βασιλεύοντος': [{ lemma: 'βασιλεύω', pos: 'participle', mood: 'part', case: 'gen', tense: 'pres', features: [], dialects: [] }],
   'γάρ': [{ lemma: 'γάρ', pos: 'particle', features: ['particle'], dialects: [] }],
+  'δὴ': [{ lemma: 'δή', pos: 'particle', features: ['particle'], dialects: [] }],
   'ἀρετά': [{ lemma: 'ἀρετή', pos: 'noun', case: 'nom', features: [], dialects: ['doric'] }],
 };
 
@@ -81,12 +82,13 @@ test('pre-fetch loads exactly the governing Denniston, Smyth, Buck and LSJ passa
   const parsed = await (await import('../src/morph/index.js')).getMorph().analyzeText(verse.source);
   const triggers = detectTriggers(parsed, { dialect: 'attic' });
   const types = triggers.map((t) => `${t.type}:${t.value}`);
-  for (const t of ['particle:γαρ', 'construction:genitive-absolute', 'dialect:doric', 'lemma:νουσ', 'lemma:αρετη']) assert.ok(types.includes(t), `trigger ${t}`);
+  for (const t of ['particle:γαρ', 'particle:δη', 'construction:genitive-absolute', 'dialect:doric', 'lemma:νουσ', 'lemma:αρετη']) assert.ok(types.includes(t), `trigger ${t}`);
   const works = await visibleWorks({ agentId: agents.a.id, dialects: ['attic'] });
   assert.ok(!works.some((w) => w.short === 'EVAL'), 'evaluation-only works are never visible to agents');
   const got = await prefetch({ project, verse, triggers, works, runId: null });
   const cites = got.map((g) => g.citation);
-  for (const c of ['Denniston γάρ', 'Smyth §2070', 'Buck §41', 'LSJ νοῦς', 'LSJ ἀρετή']) assert.ok(cites.includes(c), `pre-fetched ${c} (got ${cites.join(', ')})`);
+  assert.ok(!cites.includes('Denniston γάρ'), 'very common particles alone are not pre-fetched every verse');
+  for (const c of ['Denniston δή', 'Smyth §2070', 'Buck §41', 'LSJ νοῦς', 'LSJ ἀρετή']) assert.ok(cites.includes(c), `pre-fetched ${c} (got ${cites.join(', ')})`);
   assert.ok(!cites.includes('Smyth §1814'), 'no optative section without an optative');
   assert.ok(!cites.includes('Buck §42'), 'no Ionic section for a Doric form');
 });

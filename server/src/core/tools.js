@@ -14,7 +14,7 @@ export const TOOL_DEFS = [
   },
   {
     name: 'section',
-    description: 'Fetch one numbered section or entry from a named work, e.g. work "Smyth", ref "2253"; work "Denniston", ref "γε"; work "Buck", ref "41".',
+    description: 'Fetch one numbered section or entry from a named work, e.g. work "Smyth", ref "2253"; work "Denniston", ref "γάρ II.3" (or "γάρ" for the overview listing its uses); work "LSJ", ref a headword.',
     parameters: { type: 'object', properties: { work: { type: 'string' }, ref: { type: 'string' } }, required: ['work', 'ref'] },
   },
   {

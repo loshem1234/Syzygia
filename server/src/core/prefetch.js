@@ -8,6 +8,11 @@ import { CONSTRUCTION_LABELS } from './constructions.js';
 import { config } from '../config.js';
 
 // Lemmas too common to spend context on; agents can still look them up.
+// Particles so frequent that pre-fetching their overview for every verse would
+// crowd out more useful references. Combinations (μὲν οὖν, καὶ δή, ἀλλὰ γάρ)
+// still fetch, and the agents can call section() for any of these.
+export const COMMON_PARTICLES = new Set((process.env.PREFETCH_SKIP_PARTICLES ?? 'και,δε,τε,μεν,γαρ,αλλα').split(',').map((s) => s.trim()).filter(Boolean));
+
 export const COMMON_LEMMAS = new Set(['ο', 'και', 'δε', 'ειμι', 'αυτοσ', 'ου', 'ουκ', 'ουχ', 'εν', 'εισ', 'εκ', 'εξ', 'τε', 'μεν', 'γαρ', 'ουτοσ', 'τισ', 'οσ', 'εγω', 'συ', 'προσ', 'επι', 'κατα', 'δια', 'μετα', 'απο', 'περι', 'υπο', 'παρα', 'ωσ', 'η', 'μη', 'αλλα', 'αν', 'ει']);
 
 const PRIORITY = { term: 0, variant: 1, particle: 2, construction: 3, dialect: 4, lemma: 5 };
@@ -43,6 +48,7 @@ export async function prefetch({ project, verse, triggers, works, runId, phase =
   const rules = await applicableRules({ project, learned });
   const ordered = [...triggers]
     .filter((t) => !(t.type === 'lemma' && COMMON_LEMMAS.has(t.value)))
+    .filter((t) => !(t.type === 'particle' && COMMON_PARTICLES.has(t.value)))
     .sort((a, b) => (PRIORITY[a.type] - PRIORITY[b.type]) || ((lemmaFrequency.get(a.value) || 0) - (lemmaFrequency.get(b.value) || 0)));
   const seen = new Set();
   const out = [];

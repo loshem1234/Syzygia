@@ -19,12 +19,39 @@ export function estimateTokens(text) {
   return Math.ceil(greek / 1.4 + (s.length - greek) / 3.8);
 }
 
-export function systemPrompt(agent) {
+export function systemPrompt(agent, works = []) {
   return `${CHARTER}
 
 YOUR PROFILE
 Name: ${agent.name}
-${agent.temperament ? `Temperament: ${agent.temperament}\n` : ''}${agent.instructions ? `Instructions from Loshem:\n${agent.instructions}\n` : ''}(These instructions shape your voice and expertise. They never override the Charter.)`;
+${agent.temperament ? `Temperament: ${agent.temperament}\n` : ''}${agent.instructions ? `Instructions from Loshem:\n${agent.instructions}\n` : ''}(These instructions shape your voice and expertise. They never override the Charter.)${libraryGuide(works)}`;
+}
+
+// How each reference work is addressed. Stable for a run, so it sits in the
+// cached system prompt. Built from the works this agent can actually see.
+const KIND_USE = {
+  lexicon: (w) => `entries by headword (the dictionary form). Use lookup("<lemma>"${w.short ? `, "${w.short}"` : ''}); if the sense you need was trimmed, call lookup again with full: true. Cite {"work":"${w.short}","ref":"<headword>"}.`,
+  grammar: (w) => `numbered sections. Use section("${w.short}", "<number>"), e.g. "2070"; use search() when you know the topic but not the number. Cite {"work":"${w.short}","ref":"<number>"} — the number only, no §.`,
+  particles: (w) => `one entry per particle or combination (γάρ, δή, μὲν οὖν, καὶ δή, ἀλλὰ γάρ, δ' οὖν). The entry [${w.short} <particle>] is an overview listing its numbered uses, e.g. "γάρ II.3". Read the list, decide which use this verse shows, fetch that use with section("${w.short}", "γάρ II.3"), and cite that use, not the overview. Pages also resolve: "p. 58".`,
+  dialect: (w) => `numbered sections on dialect forms. Use section("${w.short}", "<number>") or search(). Cite the section number.`,
+  philosophical: (w) => `entries by term. Use section("${w.short}", "<term>") or search(). Cite the term as headed.`,
+};
+
+export function libraryGuide(works = []) {
+  const usable = works.filter((w) => w.scope !== 'evaluation');
+  if (!usable.length) return '';
+  const lines = ['\n\nYOUR LIBRARY (these works and no others can be cited)'];
+  for (const w of usable) {
+    const use = KIND_USE[w.kind] ? KIND_USE[w.kind](w) : `passages by the ref shown in brackets. Use section("${w.short}", "<ref>") or search().`;
+    lines.push(`- ${w.short}: ${w.title}${w.scope === 'agent' ? ' (your private file)' : ''}. ${use}`);
+  }
+  lines.push(`HOW TO USE IT
+1. Read the pre-fetched references first. Each is headed [Siglum ref]; that bracket is the citation: work = the siglum, ref = the rest, exactly as shown.
+2. Reach for a tool only when a point you are making or contesting turns on it, and fetch the most specific passage: one LSJ sense, one Smyth section, one Denniston use. You have a small budget of calls per turn.
+3. Cite the passage that actually supports the point. A quote is optional; if you give one, copy a few consecutive words exactly as they stand in the passage, or leave it out.
+4. A work that is not listed above (Goodwin, Kühner–Gerth, Montanari, a commentary) cannot be cited as a citation. If your point rests on your own knowledge of it, make it a "text" observation and argue from the Greek.
+5. References serve the translation. Never pad a critique with citations; one exact reference beats three general ones.`);
+  return lines.join('\n');
 }
 
 function layerWork(project, workText) {
@@ -139,7 +166,7 @@ function layerDebate(turns, phase, agentLetter) {
 export function assembleContext(data) {
   const ids = new Set();
   const include = (id) => { if (ids.has(id)) return false; ids.add(id); return true; };
-  const system = systemPrompt(data.agent);
+  const system = systemPrompt(data.agent, data.works || []);
   const l2 = layerWork(data.project, data.workText);
   const l3 = layerNotes(data.studyNotes || [], data.style || [], include);
   const l4 = layerLedger(data.ledger || [], include);

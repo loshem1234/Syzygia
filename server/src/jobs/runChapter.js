@@ -141,7 +141,7 @@ async function takeTurn({ run, project, chapter, verse, agents, workText, morph,
   const model = useEscalation ? agent.escalation_model : agent.model;
   const data = await verseData({ project, chapter, verse, morph, agentLetter: letter, agents, runId: run.id, learned: run.learned_rules, cache });
   const ctx = assembleContext({
-    agent, project, workText, studyNotes, style, ledger: data.ledger, translation: data.translation, digests,
+    agent, project, workText, studyNotes, style, ledger: data.ledger, translation: data.translation, digests, works: data.works,
     chapter, verse, packet: data.packet, turns, phase, budgetTokens: config.limits.contextBudgetTokens,
   });
   const executeTool = makeToolExecutor({ works: data.works, projectId: project.id, runId: run.id, verseId: verse.id, phase, agent: letter, morph, triggers: cache.triggers });

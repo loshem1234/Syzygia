@@ -26,6 +26,6 @@ export const KINDS = [
   ['lexicon', 'Lexicon'], ['grammar', 'Grammar'], ['particles', 'Particles'], ['dialect', 'Dialect handbook'], ['philosophical', 'Philosophical terms'], ['edition', 'Edition or apparatus'], ['translation', 'Translation'], ['other', 'Other'],
 ];
 export const SPLITS = [
-  ['jsonl', 'Structured lines (JSONL)'], ['lsj-xml', 'LSJ (Perseus XML)'], ['headword', 'Lexicon: by headword'], ['particle', 'Particles: by particle'], ['section', 'Grammar: by numbered section'], ['heading', 'By heading'], ['paragraph', 'By paragraph'],
+  ['section', 'By numbered section (Smyth, Buck, Goodwin)'], ['headword', 'By headword (lexica, Peters)'], ['particle', 'By particle (Denniston)'], ['heading', 'By heading'], ['paragraph', 'By paragraph'], ['lsj-xml', 'LSJ (Perseus XML)'], ['jsonl', 'Structured lines (JSONL)'],
 ];
 export const fmtUsd = (n) => (n == null ? '—' : `$${Number(n).toFixed(n < 1 ? 3 : 2)}`);

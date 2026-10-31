@@ -65,6 +65,9 @@ export default function LibraryPage() {
                 <td>{w.chunks.toLocaleString()}{w.embedded ? <span className="faint small"> ({w.embedded} embedded)</span> : null}</td>
                 <td>{w.verified} of {w.chunks}</td>
                 <td style={{ whiteSpace: 'nowrap' }}>
+                  <label className="btn quiet" title="Add another file to this work, such as the next letter of a lexicon">Add a file
+                    <input type="file" multiple className="sr" accept=".txt,.jsonl,.xml,text/plain" onChange={(e) => { const files = [...e.target.files]; e.target.value = ''; if (files.length) run(async () => { for (const file of files) { toast(`Adding ${file.name} to ${w.short}…`); await api.post(`/library/${w.id}/append`, form({ file })); } lib.reload(); }, `Added ${files.length} file${files.length > 1 ? 's' : ''} to ${w.short}`); }} />
+                  </label>
                   <button className="btn quiet" onClick={() => setBrowse(w)}>Browse</button>
                   <button className="btn quiet" onClick={() => setCheck(w)}>Spot-check</button>
                   <button className="btn quiet danger" disabled={busy} onClick={() => window.confirm(`Remove ${w.title} from the library?`) && run(async () => { await api.del(`/library/${w.id}`); lib.reload(); }, 'Removed')}>Remove</button>
@@ -86,7 +89,7 @@ export default function LibraryPage() {
             <thead><tr><th>Short name</th><th>Work</th><th>Kind</th><th>Split by</th><th>In your library</th></tr></thead>
             <tbody>
               {STARTER.map(([s, t, k, split]) => (
-                <tr key={s}><td>{s}</td><td>{t}</td><td>{KINDS.find(([x]) => x === k)?.[1]}</td><td className="muted">{split}</td><td>{works.some((w) => w.short.toLowerCase() === s.toLowerCase()) ? <span className="tag ok">present</span> : <span className="faint">—</span>}</td></tr>
+                <tr key={s}><td>{s}</td><td>{t}</td><td>{KINDS.find(([x]) => x === k)?.[1]}</td><td className="muted">{split}</td><td>{works.some((w) => w.short.trim().toLowerCase() === s.toLowerCase() || w.title.toLowerCase().includes(t.toLowerCase().split(',')[0])) ? <span className="tag ok">present</span> : <span className="faint">—</span>}</td></tr>
               ))}
             </tbody>
           </table>

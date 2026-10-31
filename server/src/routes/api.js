@@ -26,6 +26,19 @@ const fileText = (req) => (req.file ? req.file.buffer.toString('utf8') : null);
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const int = (v) => (v == null || v === '' ? null : Number(v));
 
+
+// Insert chunks in batches of 500, so a large lexicon file loads in seconds.
+async function insertChunks(workId, chunks, startOrd) {
+  for (let i = 0; i < chunks.length; i += 500) {
+    const b = chunks.slice(i, i + 500);
+    await q(`INSERT INTO reference_chunks (work_id, ord, ref, ref_key, heading, text, search_key, lemma_keys, topics)
+             SELECT $1, o, r, rk, h, t, sk, string_to_array(lk, '|'), string_to_array(tp, '|')
+               FROM unnest($2::int[], $3::text[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[], $9::text[]) AS x(o, r, rk, h, t, sk, lk, tp)`,
+      [workId, b.map((_, j) => startOrd + i + j + 1), b.map((c) => c.ref), b.map((c) => c.ref_key), b.map((c) => c.heading), b.map((c) => c.text),
+        b.map((c) => c.search_key), b.map((c) => c.lemma_keys.join('|')), b.map((c) => c.topics.join('|'))]);
+  }
+}
+
 export function apiRouter() {
   const r = express.Router();
 
@@ -331,13 +344,24 @@ export function apiRouter() {
     const chunks = splitWork(raw, b.split_mode || 'paragraph');
     if (!chunks.length) return res.status(400).json({ error: 'Nothing could be split from that text with the chosen mode.' });
     const work = await one(`INSERT INTO library_works (title, short, kind, scope, agent_id, dialect, split_mode) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [b.title, b.short, b.kind, b.scope || 'shared', int(b.agent_id), b.dialect || null, b.split_mode || 'paragraph']);
-    for (const [i, c] of chunks.entries()) {
-      await q(`INSERT INTO reference_chunks (work_id, ord, ref, ref_key, heading, text, search_key, lemma_keys, topics) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-        [work.id, i + 1, c.ref, c.ref_key, c.heading, c.text, c.search_key, c.lemma_keys, c.topics]);
-    }
+      [String(b.title || '').trim(), String(b.short || '').trim(), b.kind, b.scope || 'shared', int(b.agent_id), b.dialect || null, b.split_mode || 'paragraph']);
+    await insertChunks(work.id, chunks, 0);
     if (config.embeddings.provider && !['lexicon'].includes(work.kind)) await enqueue('embed_work', { workId: work.id });
     res.json({ work, chunks: chunks.length, sample: chunks.slice(0, 3).map((c) => ({ ref: c.ref, text: c.text.slice(0, 300) })) });
+  }));
+  // Add another file to an existing work, e.g. LSJ's 27 files, one letter each.
+  r.post('/library/:id/append', upload.single('file'), wrap(async (req, res) => {
+    const work = await one('SELECT * FROM library_works WHERE id = $1', [req.params.id]);
+    if (!work) return res.status(404).json({ error: 'Not found' });
+    const raw = fileText(req) ?? req.body.raw;
+    if (!raw?.trim()) return res.status(400).json({ error: 'No text received' });
+    const chunks = splitWork(raw, work.split_mode);
+    if (!chunks.length) return res.status(400).json({ error: 'Nothing could be split from that text with this work\'s split mode.' });
+    const start = (await one('SELECT coalesce(max(ord),0)::int AS n FROM reference_chunks WHERE work_id = $1', [work.id])).n;
+    await insertChunks(work.id, chunks, start);
+    if (config.embeddings.provider && !['lexicon'].includes(work.kind)) await enqueue('embed_work', { workId: work.id });
+    const total = (await one('SELECT count(*)::int AS n FROM reference_chunks WHERE work_id = $1', [work.id])).n;
+    res.json({ work, chunks: chunks.length, total, sample: chunks.slice(0, 3).map((c) => ({ ref: c.ref, text: c.text.slice(0, 300) })) });
   }));
   r.patch('/library/:id', wrap(async (req, res) => {
     const cur = await one('SELECT * FROM library_works WHERE id = $1', [req.params.id]);

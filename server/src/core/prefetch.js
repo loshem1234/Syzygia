@@ -1,3 +1,4 @@
+import { lookupKey } from './integrity.js';
 // Pre-fetch: before a verse is debated, the parser's findings are mapped by
 // rules to the exact references that govern them. Core rules are fixed and can
 // never be removed; learned rules (book, corpus, global) add to them.
@@ -38,6 +39,16 @@ async function resolve(rule, trigger, works) {
   const ids = rule.target_work_id ? works.filter((w) => w.id === rule.target_work_id).map((w) => w.id) : kindIds(rule.target_work_kind);
   if (!ids.length) return [];
   if (rule.target_kind === 'headword') return byHeadword(trigger.value, ids, rule.max_chunks);
+  if (trigger.type === 'dialect') {
+    // The form itself in the handbook's glossary, then the summary of that
+    // dialect's characteristics, then a plain search as a last resort.
+    const got = [];
+    const add = (cs) => { for (const c of cs) if (got.length < rule.max_chunks && !got.some((g) => g.id === c.id)) got.push(c); };
+    if (trigger.form) add(await byHeadword(lookupKey(trigger.form), ids, 1));
+    add(await byHeadword(lookupKey(trigger.value), ids, 1));
+    if (got.length < rule.max_chunks) add(await search(trigger.value, { workIds: ids, limit: rule.max_chunks }));
+    return got;
+  }
   if (rule.target_kind === 'ref') { const c = await byRef(ids[0], rule.target_ref); return c ? [c] : []; }
   const label = CONSTRUCTION_LABELS[trigger.value] || trigger.value;
   const query = (rule.query || '{label}').replace('{value}', trigger.value).replace('{label}', label);

@@ -85,6 +85,8 @@ export function detectTriggers(parsedTokens, { ledgerKeys = new Set(), dialect =
 
   if (parsedTokens.some((t) => t.analyses.some((a) => a.features?.includes('relative')))) add('construction', 'relative-clause');
   if (variantFlag) add('variant', 'flagged');
-  if (dialect && dialect !== 'attic') add('dialect', dialect);
+  // A verse set to a regional dialect brings that dialect's handbook summary.
+  // Attic-based prose (Koine, late antique philosophical prose) needs none.
+  if (dialect && !['attic', 'koine', 'late-antique'].includes(dialect)) add('dialect', dialect);
   return triggers;
 }
